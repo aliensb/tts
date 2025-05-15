@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"tts/internal/models"
 	"tts/internal/tts"
 
 	"github.com/gin-gonic/gin"
@@ -32,5 +33,9 @@ func (h *VoicesHandler) HandleVoices(c *gin.Context) {
 	}
 
 	// 返回JSON响应
-	c.JSON(http.StatusOK, voices)
+	c.JSON(http.StatusOK, models.R{
+		Code: 0,
+		Msg:  "ok",
+		Data: voices,
+	})
 }

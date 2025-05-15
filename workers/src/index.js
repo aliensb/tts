@@ -4,26 +4,26 @@ let endpoint = null;
 // 添加缓存相关变量
 let voiceListCache = null;
 let voiceListCacheTime = null;
-const VOICE_CACHE_DURATION =4 *60 * 60 * 1000; // 4小时，单位毫秒
+const VOICE_CACHE_DURATION = 4 * 60 * 60 * 1000; // 4小时，单位毫秒
 
 // 定义需要保留的 SSML 标签模式
 const preserveTags = [
-  { name: 'break', pattern: /<break\s+[^>]*\/>/g },
-  { name: 'speak', pattern: /<speak>|<\/speak>/g },
-  { name: 'prosody', pattern: /<prosody\s+[^>]*>|<\/prosody>/g },
-  { name: 'emphasis', pattern: /<emphasis\s+[^>]*>|<\/emphasis>/g },
-  { name: 'voice', pattern: /<voice\s+[^>]*>|<\/voice>/g },
-  { name: 'say-as', pattern: /<say-as\s+[^>]*>|<\/say-as>/g },
-  { name: 'phoneme', pattern: /<phoneme\s+[^>]*>|<\/phoneme>/g },
-  { name: 'audio', pattern: /<audio\s+[^>]*>|<\/audio>/g },
-  { name: 'p', pattern: /<p>|<\/p>/g },
-  { name: 's', pattern: /<s>|<\/s>/g },
-  { name: 'sub', pattern: /<sub\s+[^>]*>|<\/sub>/g },
-  { name: 'mstts', pattern: /<mstts:[^>]*>|<\/mstts:[^>]*>/g }
+  { name: "break", pattern: /<break\s+[^>]*\/>/g },
+  { name: "speak", pattern: /<speak>|<\/speak>/g },
+  { name: "prosody", pattern: /<prosody\s+[^>]*>|<\/prosody>/g },
+  { name: "emphasis", pattern: /<emphasis\s+[^>]*>|<\/emphasis>/g },
+  { name: "voice", pattern: /<voice\s+[^>]*>|<\/voice>/g },
+  { name: "say-as", pattern: /<say-as\s+[^>]*>|<\/say-as>/g },
+  { name: "phoneme", pattern: /<phoneme\s+[^>]*>|<\/phoneme>/g },
+  { name: "audio", pattern: /<audio\s+[^>]*>|<\/audio>/g },
+  { name: "p", pattern: /<p>|<\/p>/g },
+  { name: "s", pattern: /<s>|<\/s>/g },
+  { name: "sub", pattern: /<sub\s+[^>]*>|<\/sub>/g },
+  { name: "mstts", pattern: /<mstts:[^>]*>|<\/mstts:[^>]*>/g },
 ];
 
-function uuid(){
-  return crypto.randomUUID().replace(/-/g, '')
+function uuid() {
+  return crypto.randomUUID().replace(/-/g, "");
 }
 
 // EscapeSSML 转义 SSML 内容，但保留配置的标签
@@ -35,7 +35,7 @@ function escapeSSML(ssml) {
 
   // 处理所有配置的标签
   for (const tag of preserveTags) {
-    processedSSML = processedSSML.replace(tag.pattern, function(match) {
+    processedSSML = processedSSML.replace(tag.pattern, function (match) {
       const placeholder = `__SSML_PLACEHOLDER_${tag.name}_${counter++}__`;
       placeholders.set(placeholder, match);
       return placeholder;
@@ -57,11 +57,16 @@ function escapeSSML(ssml) {
 function escapeBasicXml(unsafe) {
   return unsafe.replace(/[<>&'"]/g, function (c) {
     switch (c) {
-      case '<': return '&lt;';
-      case '>': return '&gt;';
-      case '&': return '&amp;';
-      case '\'': return '&apos;';
-      case '"': return '&quot;';
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case "&":
+        return "&amp;";
+      case "'":
+        return "&apos;";
+      case '"':
+        return "&quot;";
     }
   });
 }
@@ -70,57 +75,73 @@ async function handleRequest(request) {
   const requestUrl = new URL(request.url);
   const path = requestUrl.pathname;
 
-  if (path === '/tts') {
+  if (path === "/tts") {
     // 从请求参数获取 API 密钥
-    const apiKey = requestUrl.searchParams.get('api_key');
+    const apiKey = requestUrl.searchParams.get("api_key");
 
     // 验证 API 密钥
     if (!validateApiKey(apiKey)) {
       // 改进 401 错误响应，提供更友好的错误信息
-      return new Response(JSON.stringify({
-        error: 'Unauthorized',
-        message: '无效的 API 密钥，请确保您提供了正确的密钥。',
-        status: 401
-      }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json; charset=utf-8' }
-      });
+      return new Response(
+        JSON.stringify({
+          error: "Unauthorized",
+          message: "无效的 API 密钥，请确保您提供了正确的密钥。",
+          status: 401,
+        }),
+        {
+          status: 401,
+          headers: { "Content-Type": "application/json; charset=utf-8" },
+        }
+      );
     }
 
-    const text = requestUrl.searchParams.get('t') || '';
-    const voiceName = requestUrl.searchParams.get('v') || 'zh-CN-XiaoxiaoMultilingualNeural';
-    const rate =  Number(requestUrl.searchParams.get('r')) || 0;
-    const pitch = Number(requestUrl.searchParams.get('p')) || 0;
-    const style = requestUrl.searchParams.get('s') || 'general';
-    const outputFormat = requestUrl.searchParams.get('o') || 'audio-24khz-48kbitrate-mono-mp3';
-    const download = requestUrl.searchParams.get('d') || false;
-    const response = await getVoice(text, voiceName, rate, pitch, style, outputFormat, download);
+    const text = requestUrl.searchParams.get("t") || "";
+    const voiceName =
+      requestUrl.searchParams.get("v") || "zh-CN-XiaoxiaoMultilingualNeural";
+    const rate = Number(requestUrl.searchParams.get("r")) || 0;
+    const pitch = Number(requestUrl.searchParams.get("p")) || 0;
+    const style = requestUrl.searchParams.get("s") || "general";
+    const outputFormat =
+      requestUrl.searchParams.get("o") || "audio-24khz-48kbitrate-mono-mp3";
+    const download = requestUrl.searchParams.get("d") || false;
+    const response = await getVoice(
+      text,
+      voiceName,
+      rate,
+      pitch,
+      style,
+      outputFormat,
+      download
+    );
     return response;
   }
 
   // 添加 reader.json 路径处理
-  if (path === '/reader.json') {
+  if (path === "/reader.json") {
     // 从请求参数获取 API 密钥
-    const apiKey = requestUrl.searchParams.get('api_key');
+    const apiKey = requestUrl.searchParams.get("api_key");
 
     // 验证 API 密钥
     if (!validateApiKey(apiKey)) {
-      return new Response(JSON.stringify({
-        error: 'Unauthorized',
-        message: '无效的 API 密钥，请确保您提供了正确的密钥。',
-        status: 401
-      }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json; charset=utf-8' }
-      });
+      return new Response(
+        JSON.stringify({
+          error: "Unauthorized",
+          message: "无效的 API 密钥，请确保您提供了正确的密钥。",
+          status: 401,
+        }),
+        {
+          status: 401,
+          headers: { "Content-Type": "application/json; charset=utf-8" },
+        }
+      );
     }
 
     // 从URL参数获取
-    const voice = requestUrl.searchParams.get('v') || '';
-    const rate = requestUrl.searchParams.get('r') || '';
-    const pitch = requestUrl.searchParams.get('p') || '';
-    const style = requestUrl.searchParams.get('s') || '';
-    const displayName = requestUrl.searchParams.get('n') || 'Microsoft TTS';
+    const voice = requestUrl.searchParams.get("v") || "";
+    const rate = requestUrl.searchParams.get("r") || "";
+    const pitch = requestUrl.searchParams.get("p") || "";
+    const style = requestUrl.searchParams.get("s") || "";
+    const displayName = requestUrl.searchParams.get("n") || "Microsoft TTS";
 
     // 构建基本URL
     const baseUrl = `${requestUrl.protocol}//${requestUrl.host}`;
@@ -145,42 +166,48 @@ async function handleRequest(request) {
       urlParams.push(`api_key=${apiKey}`);
     }
 
-    const url = `${baseUrl}/tts?${urlParams.join('&')}`;
+    const url = `${baseUrl}/tts?${urlParams.join("&")}`;
 
     // 返回 reader 响应
-    return new Response(JSON.stringify({
-      id: Date.now(),
-      name: displayName,
-      url: url
-    }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json; charset=utf-8' }
-    });
+    return new Response(
+      JSON.stringify({
+        id: Date.now(),
+        name: displayName,
+        url: url,
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+      }
+    );
   }
 
   // 添加 ifreetime.json 路径处理
-  if (path === '/ifreetime.json') {
+  if (path === "/ifreetime.json") {
     // 从请求参数获取 API 密钥
-    const apiKey = requestUrl.searchParams.get('api_key');
+    const apiKey = requestUrl.searchParams.get("api_key");
 
     // 验证 API 密钥
     if (!validateApiKey(apiKey)) {
-      return new Response(JSON.stringify({
-        error: 'Unauthorized',
-        message: '无效的 API 密钥，请确保您提供了正确的密钥。',
-        status: 401
-      }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json; charset=utf-8' }
-      });
+      return new Response(
+        JSON.stringify({
+          error: "Unauthorized",
+          message: "无效的 API 密钥，请确保您提供了正确的密钥。",
+          status: 401,
+        }),
+        {
+          status: 401,
+          headers: { "Content-Type": "application/json; charset=utf-8" },
+        }
+      );
     }
 
     // 从URL参数获取
-    const voice = requestUrl.searchParams.get('v') || '';
-    const rate = requestUrl.searchParams.get('r') || '';
-    const pitch = requestUrl.searchParams.get('p') || '';
-    const style = requestUrl.searchParams.get('s') || '';
-    const displayName = requestUrl.searchParams.get('n') || 'Microsoft TTS';
+    const voice = requestUrl.searchParams.get("v") || "";
+    const rate = requestUrl.searchParams.get("r") || "";
+    const pitch = requestUrl.searchParams.get("p") || "";
+    const style = requestUrl.searchParams.get("s") || "";
+    const displayName = requestUrl.searchParams.get("n") || "Microsoft TTS";
 
     // 构建基本URL
     const baseUrl = `${requestUrl.protocol}//${requestUrl.host}`;
@@ -191,11 +218,11 @@ async function handleRequest(request) {
 
     // 构建请求参数
     const params = {
-      "t": "%@", // %@ 是 IFreeTime 中的文本占位符
-      "v": voice,
-      "r": rate,
-      "p": pitch,
-      "s": style
+      t: "%@", // %@ 是 IFreeTime 中的文本占位符
+      v: voice,
+      r: rate,
+      p: pitch,
+      s: style,
     };
 
     // 如果需要API密钥认证，添加到请求参数
@@ -214,7 +241,7 @@ async function handleRequest(request) {
       _TTSConfigID: ttsConfigID,
       httpConfigs: {
         useCookies: 1,
-        headers: {}
+        headers: {},
       },
       voiceList: [],
       ttsHandles: [
@@ -231,42 +258,45 @@ async function handleRequest(request) {
           params: params,
           httpConfigs: {
             useCookies: 1,
-            headers: {}
-          }
-        }
-      ]
+            headers: {},
+          },
+        },
+      ],
     };
 
     // 返回 IFreeTime 响应
     return new Response(JSON.stringify(response), {
       status: 200,
-      headers: { 'Content-Type': 'application/json; charset=utf-8' }
+      headers: { "Content-Type": "application/json; charset=utf-8" },
     });
   }
 
   // 添加 OpenAI 兼容接口路由
-  if (path === '/v1/audio/speech' || path === '/audio/speech') {
+  if (path === "/v1/audio/speech" || path === "/audio/speech") {
     return await handleOpenAITTS(request);
   }
 
-  if(path === '/voices') {
-    const l = (requestUrl.searchParams.get('l') || '').toLowerCase();
-    const f = requestUrl.searchParams.get('f');
+  if (path === "/voices") {
+    const l = (requestUrl.searchParams.get("l") || "").toLowerCase();
+    const f = requestUrl.searchParams.get("f");
     let response = await voiceList();
 
-    if(l.length > 0) {
-      response = response.filter(item => item.Locale.toLowerCase().includes(l));
+    if (l.length > 0) {
+      response = response.filter((item) =>
+        item.Locale.toLowerCase().includes(l)
+      );
     }
 
     return new Response(JSON.stringify(response), {
-      headers:{
-      'Content-Type': 'application/json; charset=utf-8'
-      }
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+      },
     });
   }
 
-  const baseUrl = request.url.split('://')[0] + "://" +requestUrl.host;
-  return new Response(`
+  const baseUrl = request.url.split("://")[0] + "://" + requestUrl.host;
+  return new Response(
+    `
   <!DOCTYPE html>
   <html lang="zh-CN">
   <head>
@@ -1102,41 +1132,42 @@ curl -X POST ${baseUrl}/v1/audio/speech \\
     </script>
   </body>
   </html>
-  `, { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8'}});
+  `,
+    { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } }
+  );
 }
 
-addEventListener('fetch', event => {
+addEventListener("fetch", (event) => {
   event.respondWith(handleRequest(event.request));
 });
 
-
-
 async function getEndpoint() {
-  const endpointUrl = 'https://dev.microsofttranslator.com/apps/endpoint?api-version=1.0';
+  const endpointUrl =
+    "https://dev.microsofttranslator.com/apps/endpoint?api-version=1.0";
   const headers = {
-    'Accept-Language': 'zh-Hans',
-    'X-ClientVersion': '4.0.530a 5fe1dc6c',
-    'X-UserId': generateUserId(), // 使用随机生成的UserId
-    'X-HomeGeographicRegion': 'zh-Hans-CN',
-    'X-ClientTraceId': uuid(), // 直接使用uuid函数生成
+    "Accept-Language": "zh-Hans",
+    "X-ClientVersion": "4.0.530a 5fe1dc6c",
+    "X-UserId": generateUserId(), // 使用随机生成的UserId
+    "X-HomeGeographicRegion": "zh-Hans-CN",
+    "X-ClientTraceId": uuid(), // 直接使用uuid函数生成
 
-    'X-MT-Signature': await sign(endpointUrl),
-    'User-Agent': 'okhttp/4.5.0',
-    'Content-Type': 'application/json; charset=utf-8',
-    'Content-Length': '0',
-    'Accept-Encoding': 'gzip'
+    "X-MT-Signature": await sign(endpointUrl),
+    "User-Agent": "okhttp/4.5.0",
+    "Content-Type": "application/json; charset=utf-8",
+    "Content-Length": "0",
+    "Accept-Encoding": "gzip",
   };
 
   return fetch(endpointUrl, {
-    method: 'POST',
-    headers: headers
-  }).then(res => res.json());
+    method: "POST",
+    headers: headers,
+  }).then((res) => res.json());
 }
 
 // 随机生成 X-UserId，格式为 16 位字符（字母+数字）
 function generateUserId() {
-  const chars = 'abcdef0123456789'; // 只使用16进制字符，与原格式一致
-  let result = '';
+  const chars = "abcdef0123456789"; // 只使用16进制字符，与原格式一致
+  let result = "";
   for (let i = 0; i < 16; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
@@ -1144,66 +1175,87 @@ function generateUserId() {
 }
 
 async function sign(urlStr) {
-  const url = urlStr.split('://')[1];
+  const url = urlStr.split("://")[1];
   const encodedUrl = encodeURIComponent(url);
   const uuidStr = uuid();
   const formattedDate = dateFormat();
-  const bytesToSign = `MSTranslatorAndroidApp${encodedUrl}${formattedDate}${uuidStr}`.toLowerCase();
-  const decode = await base64ToBytes('oik6PdDdMnOXemTbwvMn9de/h9lFnfBaCWbGMMZqqoSaQaqUOqjVGm5NqsmjcBI1x+sS9ugjB55HEJWRiFXYFw==');
+  const bytesToSign =
+    `MSTranslatorAndroidApp${encodedUrl}${formattedDate}${uuidStr}`.toLowerCase();
+  const decode = await base64ToBytes(
+    "oik6PdDdMnOXemTbwvMn9de/h9lFnfBaCWbGMMZqqoSaQaqUOqjVGm5NqsmjcBI1x+sS9ugjB55HEJWRiFXYFw=="
+  );
   const signData = await hmacSha256(decode, bytesToSign);
   const signBase64 = await bytesToBase64(signData);
   return `MSTranslatorAndroidApp::${signBase64}::${formattedDate}::${uuidStr}`;
 }
 
 function dateFormat() {
-  const formattedDate = new Date().toUTCString().replace(/GMT/, '').trim() + 'GMT';
+  const formattedDate =
+    new Date().toUTCString().replace(/GMT/, "").trim() + "GMT";
   return formattedDate.toLowerCase();
 }
 
-function getSsml(text, voiceName, rate, pitch, style = 'general') {
+function getSsml(text, voiceName, rate, pitch, style = "general") {
   text = escapeSSML(text);
   return `<speak xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" version="1.0" xml:lang="zh-CN"> <voice name="${voiceName}"> <mstts:express-as style="${style}" styledegree="1.0" role="default"> <prosody rate="${rate}%" pitch="${pitch}%" volume="50">${text}</prosody> </mstts:express-as> </voice> </speak>`;
 }
 
 function voiceList() {
   // 检查缓存是否有效
-  if (voiceListCache && voiceListCacheTime && (Date.now() - voiceListCacheTime) < VOICE_CACHE_DURATION) {
-    console.log('使用缓存的语音列表数据，剩余有效期：',
-      Math.round((VOICE_CACHE_DURATION - (Date.now() - voiceListCacheTime)) / 60000), '分钟');
+  if (
+    voiceListCache &&
+    voiceListCacheTime &&
+    Date.now() - voiceListCacheTime < VOICE_CACHE_DURATION
+  ) {
+    console.log(
+      "使用缓存的语音列表数据，剩余有效期：",
+      Math.round(
+        (VOICE_CACHE_DURATION - (Date.now() - voiceListCacheTime)) / 60000
+      ),
+      "分钟"
+    );
     return Promise.resolve(voiceListCache);
   }
 
-  console.log('获取新的语音列表数据');
+  console.log("获取新的语音列表数据");
   const headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36 Edg/107.0.1418.26',
-    'X-Ms-Useragent': 'SpeechStudio/2021.05.001',
-    'Content-Type': 'application/json',
-    'Origin': 'https://azure.microsoft.com',
-    'Referer': 'https://azure.microsoft.com'
+    "User-Agent":
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36 Edg/107.0.1418.26",
+    "X-Ms-Useragent": "SpeechStudio/2021.05.001",
+    "Content-Type": "application/json",
+    Origin: "https://azure.microsoft.com",
+    Referer: "https://azure.microsoft.com",
   };
 
-  return fetch('https://eastus.api.speech.microsoft.com/cognitiveservices/voices/list', {
-    headers: headers,
-  })
-  .then(res => res.json())
-  .then(data => {
-    // 更新缓存
-    voiceListCache = data;
-    voiceListCacheTime = Date.now();
-    return data;
-  });
+  return fetch(
+    "https://eastus.api.speech.microsoft.com/cognitiveservices/voices/list",
+    {
+      headers: headers,
+    }
+  )
+    .then((res) => res.json())
+    .then((data) => {
+      // 更新缓存
+      voiceListCache = data.data;
+      voiceListCacheTime = Date.now();
+      return data;
+    });
 }
 
 async function hmacSha256(key, data) {
   const cryptoKey = await crypto.subtle.importKey(
-    'raw',
+    "raw",
     key,
-    { name: 'HMAC', hash: { name: 'SHA-256' } },
+    { name: "HMAC", hash: { name: "SHA-256" } },
     false,
-    ['sign']
+    ["sign"]
   );
-  const signature = await crypto.subtle.sign('HMAC', cryptoKey, new TextEncoder().encode(data));
-return new Uint8Array(signature);
+  const signature = await crypto.subtle.sign(
+    "HMAC",
+    cryptoKey,
+    new TextEncoder().encode(data)
+  );
+  return new Uint8Array(signature);
 }
 
 async function base64ToBytes(base64) {
@@ -1220,50 +1272,59 @@ async function bytesToBase64(bytes) {
   return base64;
 }
 
-
-
 // API 密钥验证函数
 function validateApiKey(apiKey) {
   // 从环境变量获取 API 密钥并进行验证
-  const expectedApiKey = API_KEY || '';
+  const expectedApiKey = API_KEY || "";
   return apiKey === expectedApiKey;
 }
 
-async function getVoice(text, voiceName = 'zh-CN-XiaoxiaoMultilingualNeural', rate = 0, pitch = 0, style = 'general', outputFormat='audio-24khz-48kbitrate-mono-mp3', download=false) {
+async function getVoice(
+  text,
+  voiceName = "zh-CN-XiaoxiaoMultilingualNeural",
+  rate = 0,
+  pitch = 0,
+  style = "general",
+  outputFormat = "audio-24khz-48kbitrate-mono-mp3",
+  download = false
+) {
   // get expiredAt from endpoint.t (jwt token)
   if (!expiredAt || Date.now() / 1000 > expiredAt - 60) {
     endpoint = await getEndpoint();
-    const jwt = endpoint.t.split('.')[1];
+    const jwt = endpoint.t.split(".")[1];
     const decodedJwt = JSON.parse(atob(jwt));
     expiredAt = decodedJwt.exp;
-    const seconds = (expiredAt - Date.now() / 1000);
+    const seconds = expiredAt - Date.now() / 1000;
     clientId = uuid();
-    console.log('getEndpoint, expiredAt:' + (seconds/ 60) + 'm left')
+    console.log("getEndpoint, expiredAt:" + seconds / 60 + "m left");
   } else {
-    const seconds = (expiredAt - Date.now() / 1000);
-    console.log('expiredAt:' + (seconds/ 60) + 'm left')
+    const seconds = expiredAt - Date.now() / 1000;
+    console.log("expiredAt:" + seconds / 60 + "m left");
   }
 
   const url = `https://${endpoint.r}.tts.speech.microsoft.com/cognitiveservices/v1`;
   const headers = {
-    'Authorization': endpoint.t,
-    'Content-Type': 'application/ssml+xml',
-    'User-Agent': 'okhttp/4.5.0',
-    'X-Microsoft-OutputFormat': outputFormat
+    Authorization: endpoint.t,
+    "Content-Type": "application/ssml+xml",
+    "User-Agent": "okhttp/4.5.0",
+    "X-Microsoft-OutputFormat": outputFormat,
   };
   const ssml = getSsml(text, voiceName, rate, pitch, style);
 
   const response = await fetch(url, {
-    method: 'POST',
+    method: "POST",
     headers: headers,
-    body: ssml
+    body: ssml,
   });
-  if(response.ok) {
+  if (response.ok) {
     if (!download) {
       return response;
     }
     const resp = new Response(response.body, response);
-    resp.headers.set('Content-Disposition', `attachment; filename="${uuid()}.mp3"`);
+    resp.headers.set(
+      "Content-Disposition",
+      `attachment; filename="${uuid()}.mp3"`
+    );
     return resp;
   } else {
     return new Response(response.statusText, { status: response.status });
@@ -1273,28 +1334,34 @@ async function getVoice(text, voiceName = 'zh-CN-XiaoxiaoMultilingualNeural', ra
 // 处理 OpenAI 格式的文本转语音请求
 async function handleOpenAITTS(request) {
   // 验证请求方法是否为 POST
-  if (request.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+  if (request.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { "Content-Type": "application/json" },
     });
   }
 
   // 验证 API 密钥
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return new Response(JSON.stringify({ error: 'Unauthorized: Missing or invalid API key' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' }
-    });
+  const authHeader = request.headers.get("Authorization");
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return new Response(
+      JSON.stringify({ error: "Unauthorized: Missing or invalid API key" }),
+      {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 
-  const apiKey = authHeader.replace('Bearer ', '');
+  const apiKey = authHeader.replace("Bearer ", "");
   if (!validateApiKey(apiKey)) {
-    return new Response(JSON.stringify({ error: 'Unauthorized: Invalid API key' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return new Response(
+      JSON.stringify({ error: "Unauthorized: Invalid API key" }),
+      {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 
   try {
@@ -1303,26 +1370,29 @@ async function handleOpenAITTS(request) {
 
     // 验证必要参数
     if (!requestData.model || !requestData.input) {
-      return new Response(JSON.stringify({ error: 'Bad request: Missing required parameters' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return new Response(
+        JSON.stringify({ error: "Bad request: Missing required parameters" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
     }
 
     // 提取参数
     const text = requestData.input;
     // 映射 voice 参数 (可选择添加 model 到 voice 的映射逻辑)
-    let voiceName = 'zh-CN-XiaoxiaoMultilingualNeural'; // 默认声音
+    let voiceName = "zh-CN-XiaoxiaoMultilingualNeural"; // 默认声音
     if (requestData.voice) {
       // OpenAI的voice参数有alloy, echo, fable, onyx, nova, shimmer
       // 可以根据需要进行映射
       const voiceMap = {
-        'alloy': 'zh-CN-XiaoxiaoMultilingualNeural',
-        'echo': 'zh-CN-YunxiNeural',
-        'fable': 'zh-CN-XiaomoNeural',
-        'onyx': 'zh-CN-YunjianNeural',
-        'nova': 'zh-CN-XiaochenNeural',
-        'shimmer': 'en-US-AriaNeural'
+        alloy: "zh-CN-XiaoxiaoMultilingualNeural",
+        echo: "zh-CN-YunxiNeural",
+        fable: "zh-CN-XiaomoNeural",
+        onyx: "zh-CN-YunjianNeural",
+        nova: "zh-CN-XiaochenNeural",
+        shimmer: "en-US-AriaNeural",
       };
       voiceName = voiceMap[requestData.voice] || requestData.voice;
     }
@@ -1338,19 +1408,31 @@ async function handleOpenAITTS(request) {
     }
 
     // 设置输出格式
-    const outputFormat = requestData.response_format === 'opus' ?
-      'audio-48khz-192kbitrate-mono-opus' :
-      'audio-24khz-48kbitrate-mono-mp3';
+    const outputFormat =
+      requestData.response_format === "opus"
+        ? "audio-48khz-192kbitrate-mono-opus"
+        : "audio-24khz-48kbitrate-mono-mp3";
 
     // 调用 TTS API
-    const ttsResponse = await getVoice(text, voiceName, rate, 0,requestData.model ,outputFormat, false);
+    const ttsResponse = await getVoice(
+      text,
+      voiceName,
+      rate,
+      0,
+      requestData.model,
+      outputFormat,
+      false
+    );
 
     return ttsResponse;
   } catch (error) {
-    console.error('OpenAI TTS API error:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error: ' + error.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    console.error("OpenAI TTS API error:", error);
+    return new Response(
+      JSON.stringify({ error: "Internal server error: " + error.message }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 }
